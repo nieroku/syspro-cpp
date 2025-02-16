@@ -3,9 +3,6 @@ project(
   'cpp',
   default_options: ['cpp_std=c++17'],
 )
-if get_option('buildtype').startswith('debug')
-  add_project_arguments('b_sanitize=address,undefined', language: 'c')
-endif
 
 avl_tree = static_library('avl_tree', sources: 'avl_tree.cc')
 avl_tree_dep = declare_dependency(link_with: avl_tree)
