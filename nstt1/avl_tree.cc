@@ -5,14 +5,19 @@
 
 using std::swap;
 
-class AvlTreeNode {
+class AvlTree::Node {
  public:
-  AvlTreeNode(int value) {
-    value_ = value;
-    height_ = 1;
-  };
+  Node(int value) : value_(value) {};
 
-  ~AvlTreeNode() = default;
+  Node(Node const& other)
+      : value_(other.value_),
+        height_(other.height_),
+        left_(other.left_),
+        right_(other.right_) {}
+
+  Node& operator=(Node const& other) = default;
+
+  ~Node() = default;
 
   bool contains(int value) {
     if (value == value_) return true;
@@ -24,12 +29,9 @@ class AvlTreeNode {
     fix();
   }
 
-  AvlTreeNode* remove(int value) {
+  Node* remove(int value) {
     if (value != value_) {
-      if (value < value_)
-        left_.remove(value);
-      else
-        right_.remove(value);
+      (value < value_ ? left_ : right_).remove(value);
       fix();
       return this;
     }
@@ -38,7 +40,7 @@ class AvlTreeNode {
       fix();
       return this;
     }
-    AvlTreeNode* heir = nullptr;
+    Node* heir = nullptr;
     swap(heir, (left_.height() ? left_ : right_).node_);
     delete this;
     return heir;
@@ -49,18 +51,18 @@ class AvlTreeNode {
 
  private:
   int value_;
-  size_t height_;
+  size_t height_ = 1;
   AvlTree left_;
   AvlTree right_;
 
-  AvlTreeNode* extractMin(int& to) {
+  Node* extractMin(int& to) {
     if (left_.height()) {
       left_.node_ = left_.node_->extractMin(to);
       fix();
       return this;
     }
     to = value_;
-    AvlTreeNode* heir = nullptr;
+    Node* heir = nullptr;
     swap(right_.node_, heir);
     delete this;
     return heir;
@@ -104,6 +106,18 @@ class AvlTreeNode {
 };
 
 AvlTree::AvlTree() = default;
+
+AvlTree::AvlTree(AvlTree const& other)
+    : node_(other.node_ ? new Node(*other.node_) : nullptr) {}
+
+AvlTree& AvlTree::operator=(AvlTree const& other) {
+  if (this != &other) {
+    delete node_;
+    node_ = other.node_ ? new Node(*other.node_) : nullptr;
+  }
+  return *this;
+}
+
 AvlTree::~AvlTree() { delete node_; };
 
 bool AvlTree::contains(int value) const {
@@ -114,7 +128,7 @@ void AvlTree::insert(int value) {
   if (node_)
     node_->insert(value);
   else
-    node_ = new AvlTreeNode(value);
+    node_ = new Node(value);
 }
 
 void AvlTree::remove(int value) {
