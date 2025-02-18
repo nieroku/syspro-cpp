@@ -1,3 +1,9 @@
+#### Tasks
+
+- [nsst1](https://github.com/nieroku/syspro-cpp/tree/nstt1/nstt1)
+- [nsst2](https://github.com/nieroku/syspro-cpp/tree/main/nstt2)
+- [nsst3](https://github.com/nieroku/syspro-cpp/tree/main/nstt1)
+
 #### Build
 
 ```sh
