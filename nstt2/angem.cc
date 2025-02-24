@@ -5,7 +5,10 @@
 #include <optional>
 
 static bool almostEquals(double a, double b) {
-  return std::fabs(a - b) < std::numeric_limits<double>::epsilon();
+  auto abs_max = fabs(fmax(a, b));
+  auto eps = std::numeric_limits<double>::epsilon();
+  if (abs_max != 0) eps *= abs_max;
+  return std::fabs(a - b) < eps;
 }
 
 static double lineNorm(double x, double y) {
