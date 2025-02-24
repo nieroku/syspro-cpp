@@ -1,12 +1,11 @@
 #include <cstddef>
 
 class AvlTree {
-  friend void swap(AvlTree& a, AvlTree& b);
-
  public:
   AvlTree();
   AvlTree(AvlTree const&);
-  AvlTree& operator=(AvlTree const&);
+  AvlTree(AvlTree&&);
+  AvlTree& operator=(AvlTree);
   ~AvlTree();
 
   bool contains(int) const;
@@ -18,5 +17,6 @@ class AvlTree {
   Node* node_ = nullptr;
 
   ptrdiff_t balance() const;
+  int extractMin();
   size_t height() const;
 };

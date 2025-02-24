@@ -3,9 +3,9 @@
 #include <algorithm>
 #include <utility>
 
-using std::swap;
-
 class AvlTree::Node {
+  friend class AvlTree;
+
  public:
   Node(int value) : value_(value) {};
 
@@ -15,7 +15,19 @@ class AvlTree::Node {
         left_(other.left_),
         right_(other.right_) {}
 
-  Node& operator=(Node const& other) = default;
+  Node(Node&& other)
+      : value_(other.value_),
+        height_(other.height_),
+        left_(std::move(other.left_)),
+        right_(std::move(other.right_)) {}
+
+  Node& operator=(Node other) {
+    std::swap(value_, other.value_);
+    std::swap(height_, other.height_);
+    std::swap(left_, other.left_);
+    std::swap(right_, other.right_);
+    return *this;
+  }
 
   ~Node() = default;
 
@@ -36,12 +48,12 @@ class AvlTree::Node {
       return this;
     }
     if (left_.height() && right_.height()) {
-      right_.node_ = right_.node_->extractMin(value_);
+      value_ = right_.extractMin();
       fix();
       return this;
     }
     Node* heir = nullptr;
-    swap(heir, (left_.height() ? left_ : right_).node_);
+    std::swap(heir, (left_.height() ? left_ : right_).node_);
     delete this;
     return heir;
   }
@@ -54,19 +66,6 @@ class AvlTree::Node {
   size_t height_ = 1;
   AvlTree left_;
   AvlTree right_;
-
-  Node* extractMin(int& to) {
-    if (left_.height()) {
-      left_.node_ = left_.node_->extractMin(to);
-      fix();
-      return this;
-    }
-    to = value_;
-    Node* heir = nullptr;
-    swap(right_.node_, heir);
-    delete this;
-    return heir;
-  }
 
   void fix() {
     switch (balance()) {
@@ -85,19 +84,19 @@ class AvlTree::Node {
   }
 
   void rotateLeft() {
-    swap(value_, right_.node_->value_);
-    swap(right_.node_->left_, right_.node_->right_);
-    swap(left_, right_.node_->left_);
-    swap(left_, right_);
+    std::swap(value_, right_.node_->value_);
+    std::swap(right_.node_->left_, right_.node_->right_);
+    std::swap(left_, right_.node_->left_);
+    std::swap(left_, right_);
     left_.node_->update();
     update();
   }
 
   void rotateRight() {
-    swap(value_, left_.node_->value_);
-    swap(left_.node_->left_, left_.node_->right_);
-    swap(left_.node_->right_, right_);
-    swap(left_, right_);
+    std::swap(value_, left_.node_->value_);
+    std::swap(left_.node_->left_, left_.node_->right_);
+    std::swap(left_.node_->right_, right_);
+    std::swap(left_, right_);
     right_.node_->update();
     update();
   }
@@ -110,11 +109,12 @@ AvlTree::AvlTree() = default;
 AvlTree::AvlTree(AvlTree const& other)
     : node_(other.node_ ? new Node(*other.node_) : nullptr) {}
 
-AvlTree& AvlTree::operator=(AvlTree const& other) {
-  if (this != &other) {
-    delete node_;
-    node_ = other.node_ ? new Node(*other.node_) : nullptr;
-  }
+AvlTree::AvlTree(AvlTree&& other) : node_(other.node_) {
+  other.node_ = nullptr;
+}
+
+AvlTree& AvlTree::operator=(AvlTree other) {
+  std::swap(node_, other.node_);
   return *this;
 }
 
@@ -136,6 +136,16 @@ void AvlTree::remove(int value) {
 }
 
 ptrdiff_t AvlTree::balance() const { return node_ ? node_->balance() : 0; }
-size_t AvlTree::height() const { return node_ ? node_->height() : 0; }
 
-void swap(AvlTree& a, AvlTree& b) { swap(a.node_, b.node_); }
+int AvlTree::extractMin() {
+  if (node_->left_.height()) {
+    int min = node_->left_.extractMin();
+    node_->fix();
+    return min;
+  }
+  int min = node_->value_;
+  *this = std::move(node_->right_);
+  return min;
+}
+
+size_t AvlTree::height() const { return node_ ? node_->height() : 0; }

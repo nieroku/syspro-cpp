@@ -69,3 +69,13 @@ TEST(AvlTreeTest, TestAssignmentOperator) {
 #pragma clang diagnostic pop
   for (const auto num : nums) EXPECT_TRUE(first.contains(num));
 }
+
+TEST(AvlTreeTest, TestMoveSemantics) {
+  AvlTree original;
+  for (const auto num : nums) original.insert(num);
+  AvlTree moved = std::move(original);
+  for (const auto num : nums) EXPECT_FALSE(original.contains(num));
+  for (const auto num : nums) EXPECT_TRUE(moved.contains(num));
+  moved = std::move(moved);
+  for (const auto num : nums) EXPECT_TRUE(moved.contains(num));
+}
