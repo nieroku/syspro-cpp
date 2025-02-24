@@ -17,10 +17,12 @@ double lineNorm(double x, double y) {
 }
 
 bool operator==(Line const& l1, Line const& l2) {
-  double norm1 = lineNorm(l1.a, l1.b);
-  double norm2 = lineNorm(l2.a, l2.b);
-  return almostEquals(l1.b / norm1, l2.b / norm2) &&
-         almostEquals(l1.c / norm1, l2.c / norm2);
+  const auto [a1, b1, c1] = l1.coefficients();
+  const auto [a2, b2, c2] = l2.coefficients();
+  double norm1 = lineNorm(a1, b1);
+  double norm2 = lineNorm(a2, b2);
+  return almostEquals(b1 / norm1, b2 / norm2) &&
+         almostEquals(c1 / norm1, c2 / norm2);
 }
 
 TEST(AngemTest, TestLine) {
@@ -36,8 +38,5 @@ TEST(AngemTest, TestIntersection) {
 
 TEST(AngemTest, TestPerpendicular) {
   EXPECT_EQ(Line(-1, 1, 0).perpendicular(Point(0, 0)), Line(1, 1, 0));
-  EXPECT_EQ(Line(1, 0, -1).perpendicular(Point(1, 1)), Line(0, 1, -1))
-      << Line(1, 0, -1).perpendicular(Point(1, 1)).a
-      << Line(1, 0, -1).perpendicular(Point(1, 1)).b
-      << Line(1, 0, -1).perpendicular(Point(1, 1)).c << std::endl;
+  EXPECT_EQ(Line(1, 0, -1).perpendicular(Point(1, 1)), Line(0, 1, -1));
 }

@@ -12,6 +12,8 @@ Line::Line(double a, double b, double c) : a(a), b(b), c(c) {}
 Line::Line(Point const& p, Point const& q)
     : a(-(q.y - p.y)), b(q.x - p.x), c(-(a * p.x + b * p.y)) {}
 
+std::array<double, 3> Line::coefficients() const { return {a, b, c}; }
+
 Line Line::perpendicular(Point const& p) const {
   return Line(-b, a, b * p.x - a * p.y);
 }
