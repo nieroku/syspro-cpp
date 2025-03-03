@@ -9,7 +9,7 @@
 
 ```sh
 meson wrap update-db
-meson setup --reconfigure builddir --buildtype debug -Db_sanitize=address,undefined
+meson setup --reconfigure builddir --buildtype debug -Db_lundef=false -Db_sanitize=address,undefined
 ```
 
 #### Testing
