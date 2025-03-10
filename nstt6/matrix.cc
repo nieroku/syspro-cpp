@@ -40,16 +40,34 @@ Matrix& Matrix::operator=(Matrix other) {
 
 Matrix::~Matrix() { delete[] data; }
 
-Matrix::Row Matrix::operator[](size_t row) { return Row(data + row * size); }
+Matrix::Row Matrix::operator[](size_t row) {
+  return Row(data + row * size, size);
+}
 const Matrix::Row Matrix::operator[](size_t row) const {
-  return Row(data + row * size);
+  return Row(data + row * size, size);
+}
+Matrix::Row Matrix::at(size_t row) {
+  if (row >= size) throw std::out_of_range("row out of range");
+  return (*this)[row];
+}
+const Matrix::Row Matrix::at(size_t row) const {
+  if (row >= size) throw std::out_of_range("row out of range");
+  return (*this)[row];
 }
 
-Matrix::Row::Row(double* data) : data(data) {}
+Matrix::Row::Row(double* data, size_t length) : data(data), length(length) {}
 
 double& Matrix::Row::operator[](size_t column) { return data[column]; }
 double const& Matrix::Row::operator[](size_t column) const {
   return data[column];
+}
+double& Matrix::Row::at(size_t column) {
+  if (column >= length) throw std::out_of_range("column out of range");
+  return (*this)[column];
+}
+double const& Matrix::Row::at(size_t column) const {
+  if (column >= length) throw std::out_of_range("column out of range");
+  return (*this)[column];
 }
 
 bool Matrix::operator==(Matrix const& other) const {
@@ -59,6 +77,7 @@ bool Matrix::operator==(Matrix const& other) const {
 bool Matrix::operator!=(Matrix const& other) const { return !(*this == other); }
 
 Matrix Matrix::operator+(Matrix const& other) {
+  if (other.size != size) throw size_mismatch();
   Matrix result = Matrix::undefined(size);
   std::transform(data, data + size * size, other.data, result.data,
                  std::plus<>());
@@ -66,6 +85,7 @@ Matrix Matrix::operator+(Matrix const& other) {
 }
 
 Matrix& Matrix::operator+=(Matrix const& other) {
+  if (other.size != size) throw size_mismatch();
   std::transform(data, data + size * size, other.data, data, std::plus<>());
   return *this;
 }
@@ -76,6 +96,7 @@ Matrix Matrix::operator*(double multiplier) {
                  [=](double x) { return x * multiplier; });
   return result;
 };
+
 Matrix& Matrix::operator*=(double multiplier) {
   std::transform(data, data + size * size, data,
                  [=](double x) { return x * multiplier; });
@@ -83,6 +104,7 @@ Matrix& Matrix::operator*=(double multiplier) {
 }
 
 Matrix Matrix::operator*(Matrix const& other) {
+  if (other.size != size) throw size_mismatch();
   Matrix result = Matrix::zero(size);
   for (size_t i = 0; i < size; i++)
     for (size_t k = 0; k < size; k++)
@@ -92,6 +114,7 @@ Matrix Matrix::operator*(Matrix const& other) {
 }
 
 Matrix& Matrix::operator*=(Matrix const& other) {
+  if (other.size != size) throw size_mismatch();
   *this = (*this) * other;
   return *this;
 }

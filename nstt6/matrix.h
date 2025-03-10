@@ -1,4 +1,5 @@
 #include <cstddef>
+#include <stdexcept>
 #include <vector>
 
 class Matrix {
@@ -22,16 +23,21 @@ class Matrix {
     friend class Matrix;
 
     double *data;
+    size_t length;
 
-    Row(double *data);
+    Row(double *data, size_t length);
 
    public:
     double &operator[](size_t column);
     double const &operator[](size_t column) const;
+    double &at(size_t column);
+    double const &at(size_t column) const;
   };
 
   Row operator[](size_t row);
   const Row operator[](size_t row) const;
+  Row at(size_t row);
+  const Row at(size_t row) const;
 
   bool operator==(Matrix const &) const;
   bool operator!=(Matrix const &) const;
@@ -45,4 +51,8 @@ class Matrix {
 
   double trace() const;
   explicit operator double() const;
+
+  struct size_mismatch : std::logic_error {
+    size_mismatch() : logic_error("Matrix size mismatch") {}
+  };
 };

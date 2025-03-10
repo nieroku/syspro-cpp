@@ -23,12 +23,18 @@ TEST(MatrixTest, TestRuleOfFive) {
 #pragma clang diagnostic pop
 }
 
-TEST(MatrixTest, TestSubscriptOperator) {
+TEST(MatrixTest, TestCheckedIndexing) {
   Matrix matrix(std::vector<double>{1, 2});
   EXPECT_EQ(1, matrix[0][0]);
   EXPECT_EQ(0, matrix[0][1]);
   EXPECT_EQ(0, matrix[1][0]);
   EXPECT_EQ(2, matrix[1][1]);
+  EXPECT_EQ(1, matrix.at(0).at(0));
+  EXPECT_EQ(0, matrix.at(0).at(1));
+  EXPECT_EQ(0, matrix.at(1).at(0));
+  EXPECT_EQ(2, matrix.at(1).at(1));
+  EXPECT_THROW(matrix.at(3), std::out_of_range);
+  EXPECT_THROW(matrix.at(2).at(3), std::out_of_range);
 }
 
 TEST(MatrixTest, TestComparison) {
@@ -42,6 +48,9 @@ TEST(MatrixTest, TestAddition) {
   matrix += Matrix{std::vector<double>{2, 1}};
   Matrix unit = Matrix::unit(2);
   EXPECT_EQ(matrix, unit + unit + unit);
+
+  EXPECT_THROW(Matrix::unit(2) + Matrix::unit(3), Matrix::size_mismatch);
+  EXPECT_THROW(matrix += Matrix::unit(3), Matrix::size_mismatch);
 }
 
 TEST(MatrixTest, TestScalarMul) {
@@ -57,6 +66,9 @@ TEST(MatrixTest, TestMatMul) {
   Matrix matrix(std::vector<double>{2, 3});
   matrix *= Matrix(std::vector<double>{3, 2});
   EXPECT_EQ(matrix, Matrix::unit(2) * 6);
+
+  EXPECT_THROW(Matrix::unit(2) * Matrix::unit(3), Matrix::size_mismatch);
+  EXPECT_THROW(matrix *= Matrix::unit(3), Matrix::size_mismatch);
 }
 
 TEST(MatrixTest, TestTrace) {
