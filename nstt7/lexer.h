@@ -40,17 +40,19 @@ struct Token {
 inline const Token::Span Token::Span::empty{0, 0};
 
 class Lexer {
-  std::string_view file;
+  std::string_view file_;
   std::optional<Token> token;
   size_t pos = 0;
 
  public:
   Lexer() : Lexer(std::string_view()) {};
-  explicit Lexer(std::string_view file) : file(file) { (*this)++; }
+  explicit Lexer(std::string_view file) : file_(file) { (*this)++; }
   explicit Lexer(const char* file) : Lexer(std::string_view(file)) {}
 
   using difference_type = std::ptrdiff_t;
   using value_type = Token;
+
+  std::string_view file() const { return file_; }
 
   Token const& operator*() const { return *token; }
   Token const* operator->() const { return token.operator->(); }

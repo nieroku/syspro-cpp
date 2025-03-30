@@ -16,16 +16,17 @@ Lexer& Lexer::operator++() {
   char8_t c;
 
   token = Token{eof, Token::Span::empty};
-  while (pos < file.size() && isSpace(c = file[pos])) pos++;
-  if (pos >= file.size()) return *this;
+  while (pos < file_.size() && isSpace(c = file_[pos])) pos++;
+  if (pos >= file_.size()) return *this;
   token->span = Token::Span{pos, 1};
 
   if (isWordFirstChar(c)) {
     token->kind = word;
-    while (++pos < file.size() && isWordChar(c = file[pos])) token->span.len++;
+    while (++pos < file_.size() && isWordChar(c = file_[pos]))
+      token->span.len++;
   } else if (isNumber(c) || c == '-') {
     token->kind = number;
-    while (++pos < file.size() && isNumber(c = file[pos])) token->span.len++;
+    while (++pos < file_.size() && isNumber(c = file_[pos])) token->span.len++;
   } else {
     switch (c) {
       case '=':
