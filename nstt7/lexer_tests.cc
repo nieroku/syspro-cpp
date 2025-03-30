@@ -61,7 +61,8 @@ TEST(LexerTest, TestExample) {
       ""
       "(let K = (val 10) in\n"
       "  (add (val 5) (var K))"
-      ")\n");
+      ")\n"
+  );
   std::array expecteds{
       Token(left_parenthesis, Token::Span{0, 1}),
       Token(word, Token::Span{1, 3}),
@@ -86,7 +87,8 @@ TEST(LexerTest, TestExample) {
       Token(right_parenthesis, Token::Span{44, 1}),
       Token(eof, Token::Span::empty),
   };
-  for (const auto expected : expecteds) EXPECT_EQ(*(lex++), expected);
+  for (const auto expected : expecteds)
+    EXPECT_EQ(*(lex++), expected);
 }
 
 TEST(LexerTest, TokenView) {

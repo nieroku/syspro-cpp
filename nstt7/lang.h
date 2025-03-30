@@ -18,7 +18,7 @@ class Env {
 
  public:
   Env() {};
-  Env(Env const& inner) : inner(inner) {};
+  Env(const Env &inner) : inner(inner) {};
   std::shared_ptr<Expr> get(std::string_view) const;
   void set(std::string_view, std::shared_ptr<Expr>);
 };
@@ -29,7 +29,7 @@ class Expr {
     Env env;
     return eval(env);
   };
-  virtual std::shared_ptr<Expr> eval(Env const&) const {
+  virtual std::shared_ptr<Expr> eval(const Env &) const {
     throw std::logic_error("TODO");
   };
   virtual operator integer() const { throw "not a value"; }
@@ -45,7 +45,7 @@ class ValExpr final : public Expr {
  public:
   ValExpr(integer val) : val(val) {};
 
-  virtual std::shared_ptr<Expr> eval(Env const&) const;
+  virtual std::shared_ptr<Expr> eval(const Env &) const;
   virtual operator integer() const;
 
   virtual operator std::string() const;
@@ -57,7 +57,7 @@ class VarExpr final : public Expr {
  public:
   VarExpr(std::string id) : id(id) {};
 
-  virtual std::shared_ptr<Expr> eval(Env const&) const;
+  virtual std::shared_ptr<Expr> eval(const Env &) const;
 
   virtual operator std::string() const;
 };
@@ -70,7 +70,7 @@ class AddExpr final : public Expr {
   AddExpr(std::shared_ptr<Expr> e1, std::shared_ptr<Expr> e2)
       : e1(e1), e2(e2) {}
 
-  virtual std::shared_ptr<Expr> eval(Env const&) const;
+  virtual std::shared_ptr<Expr> eval(const Env &) const;
 
   virtual operator std::string() const;
 };
@@ -82,8 +82,12 @@ class IfExpr final : public Expr {
   std::shared_ptr<Expr> e_else;
 
  public:
-  IfExpr(std::shared_ptr<Expr> e1, std::shared_ptr<Expr> e2,
-         std::shared_ptr<Expr> e_then, std::shared_ptr<Expr> e_else)
+  IfExpr(
+      std::shared_ptr<Expr> e1,
+      std::shared_ptr<Expr> e2,
+      std::shared_ptr<Expr> e_then,
+      std::shared_ptr<Expr> e_else
+  )
       : e1(e1), e2(e2), e_then(e_then), e_else(e_else) {}
 
   virtual operator std::string() const;
@@ -95,11 +99,14 @@ class LetExpr final : public Expr {
   std::shared_ptr<Expr> e_body;
 
  public:
-  LetExpr(std::string id, std::shared_ptr<Expr> e_value,
-          std::shared_ptr<Expr> e_body)
+  LetExpr(
+      std::string id,
+      std::shared_ptr<Expr> e_value,
+      std::shared_ptr<Expr> e_body
+  )
       : id(id), e_value(e_value), e_body(e_body) {}
 
-  virtual std::shared_ptr<Expr> eval(Env const&) const;
+  virtual std::shared_ptr<Expr> eval(const Env &) const;
 
   virtual operator std::string() const;
 };

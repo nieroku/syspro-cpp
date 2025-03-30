@@ -21,7 +21,7 @@ struct Token {
     size_t len;
 
     static const Span empty;
-    bool operator==(Span const&) const = default;
+    bool operator==(const Span&) const = default;
 
     std::string_view view(std::string_view file) const {
       return file.substr(pos, len);
@@ -34,7 +34,7 @@ struct Token {
   std::string_view view(std::string_view file) const {
     return span.view(file);
   };
-  bool operator==(Token const&) const = default;
+  bool operator==(const Token&) const = default;
 };
 
 inline const Token::Span Token::Span::empty{0, 0};
@@ -54,8 +54,8 @@ class Lexer {
 
   std::string_view file() const { return file_; }
 
-  Token const& operator*() const { return *token; }
-  Token const* operator->() const { return token.operator->(); }
+  const Token& operator*() const { return *token; }
+  const Token* operator->() const { return token.operator->(); }
 
   Lexer& operator++();
   Lexer operator++(int) {

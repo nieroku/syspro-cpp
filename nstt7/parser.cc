@@ -62,12 +62,14 @@ using enum Token::Kind;
 using enum Keyword::Value;
 
 static Token expect(Lexer &lex, Token::Kind kind) {
-  if (lex->kind != kind) throw "unexpected token";
+  if (lex->kind != kind)
+    throw "unexpected token";
   return *(lex++);
 }
 
 static Token expect(Lexer &lex, Keyword kw) {
-  if (lex->view(lex.file()) != kw) throw "unexpected keyword";
+  if (lex->view(lex.file()) != kw)
+    throw "unexpected keyword";
   return *(lex++);
 }
 
@@ -83,10 +85,12 @@ std::shared_ptr<Expr> parse(Lexer &lex) {
   const auto kw = expect(lex, word).view(lex.file());
   if (kw == Keyword(kw_val)) {
     expr = std::make_shared<ValExpr>(
-        scanInteger(expect(lex, number).view(lex.file())));
+        scanInteger(expect(lex, number).view(lex.file()))
+    );
   } else if (kw == Keyword(kw_var)) {
     expr = std::make_shared<VarExpr>(
-        std::string(expect(lex, word).view(lex.file())));
+        std::string(expect(lex, word).view(lex.file()))
+    );
   } else if (kw == Keyword(kw_add)) {
     expr = std::make_shared<AddExpr>(parse(lex), parse(lex));
   } else if (kw == Keyword(kw_let)) {
