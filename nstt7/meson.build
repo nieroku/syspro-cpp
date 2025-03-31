@@ -21,3 +21,9 @@ test_exe = executable(
   ],
 )
 test('tests', test_exe)
+
+executable(
+  'repl',
+  sources: ['repl.cc'],
+  dependencies: [lib_dep],
+)

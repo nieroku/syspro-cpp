@@ -33,7 +33,10 @@ class Expr {
     throw std::logic_error("TODO");
   };
   virtual operator integer() const { throw "not a value"; }
-
+  virtual std::shared_ptr<Expr> operator()(const Env &, std::shared_ptr<Expr>)
+      const {
+    throw "not a function";
+  }
   virtual operator std::string() const = 0;
 
   virtual ~Expr() = default;
@@ -90,6 +93,8 @@ class IfExpr final : public Expr {
   )
       : e1(e1), e2(e2), e_then(e_then), e_else(e_else) {}
 
+  virtual std::shared_ptr<Expr> eval(const Env &) const;
+
   virtual operator std::string() const;
 };
 
@@ -119,16 +124,22 @@ class FuncExpr final : public Expr {
   FuncExpr(std::string arg_id, std::shared_ptr<Expr> e_body)
       : arg_id(arg_id), e_body(e_body) {}
 
+  virtual std::shared_ptr<Expr> eval(const Env &) const;
+  virtual std::shared_ptr<Expr> operator()(const Env &, std::shared_ptr<Expr>)
+      const;
+
   virtual operator std::string() const;
 };
 
 class CallExpr final : public Expr {
-  std::shared_ptr<Expr> e_arg;
   std::shared_ptr<Expr> e_body;
+  std::shared_ptr<Expr> e_arg;
 
  public:
-  CallExpr(std::shared_ptr<Expr> e_arg, std::shared_ptr<Expr> e_body)
-      : e_arg(e_arg), e_body(e_body) {}
+  CallExpr(std::shared_ptr<Expr> e_body, std::shared_ptr<Expr> e_arg)
+      : e_body(e_body), e_arg(e_arg) {}
+
+  virtual std::shared_ptr<Expr> eval(const Env &) const;
 
   virtual operator std::string() const;
 };

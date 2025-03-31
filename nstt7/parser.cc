@@ -93,6 +93,14 @@ std::shared_ptr<Expr> parse(Lexer &lex) {
     );
   } else if (kw == Keyword(kw_add)) {
     expr = std::make_shared<AddExpr>(parse(lex), parse(lex));
+  } else if (kw == Keyword(kw_if)) {
+    const auto e1 = parse(lex);
+    const auto e2 = parse(lex);
+    expect(lex, kw_then);
+    const auto e_then = parse(lex);
+    expect(lex, kw_else);
+    const auto e_else = parse(lex);
+    expr = std::make_shared<IfExpr>(e1, e2, e_then, e_else);
   } else if (kw == Keyword(kw_let)) {
     const auto id = expect(lex, word).view(lex.file());
     expect(lex, equal_sign);
@@ -100,6 +108,12 @@ std::shared_ptr<Expr> parse(Lexer &lex) {
     expect(lex, kw_in);
     const auto e_body = parse(lex);
     expr = std::make_shared<LetExpr>(std::string(id), e_value, e_body);
+  } else if (kw == Keyword(kw_function)) {
+    expr = std::make_shared<FuncExpr>(
+        std::string(expect(lex, word).view(lex.file())), parse(lex)
+    );
+  } else if (kw == Keyword(kw_call)) {
+    expr = std::make_shared<CallExpr>(parse(lex), parse(lex));
   } else
     throw "invalid expression";
   expect(lex, right_parenthesis);

@@ -14,5 +14,7 @@ BreakBeforeBraces: Attach
 BreakConstructorInitializers: BeforeColon
 PackConstructorInitializers: NextLine
 PenaltyBreakAssignment: 1000
+PenaltyBreakBeforeFirstCallParameter: 0
+PenaltyBreakOpenParenthesis: 0
 PenaltyBreakScopeResolution: 2000
 QualifierAlignment: Left

@@ -23,13 +23,33 @@ std::shared_ptr<Expr> VarExpr::eval(const Env &env) const {
 std::shared_ptr<Expr> AddExpr::eval(const Env &env) const {
   return std::make_shared<ValExpr>((integer)*e1->eval(env) + *e2->eval(env));
 }
+std::shared_ptr<Expr> IfExpr::eval(const Env &env) const {
+  if ((integer)*e1->eval(env) > *e2->eval(env))
+    return e_then->eval(env);
+  else
+    return e_else->eval(env);
+}
 std::shared_ptr<Expr> LetExpr::eval(const Env &env) const {
   Env updated_env(env);
   updated_env.set(id, e_value);
   return e_body->eval(updated_env);
 }
+std::shared_ptr<Expr> FuncExpr::eval(const Env &) const {
+  return std::make_shared<ValExpr>(*this);
+}
+std::shared_ptr<Expr> CallExpr::eval(const Env &env) const {
+  return e_body->eval(env)->operator()(env, e_arg->eval(env));
+}
 
 ValExpr::operator integer() const { return val; }
+
+std::shared_ptr<Expr> FuncExpr::operator()(
+    const Env &env, std::shared_ptr<Expr> arg
+) const {
+  Env updated_env(env);
+  updated_env.set(arg_id, arg);
+  return e_body->eval(updated_env);
+}
 
 ValExpr::operator std::string() const { return std::format("(val {})", val); }
 VarExpr::operator std::string() const { return std::format("(var {})", id); }
