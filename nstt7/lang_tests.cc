@@ -57,3 +57,10 @@ TEST(LangTest, Fibonacci) {
   EXPECT_EQ(8, *evaluated);
   EXPECT_EQ("(val 8)"s, (std::string)*evaluated);
 }
+
+TEST(LangTest, EnableSharedFromThisForExprs) {
+  const ValExpr val_expr(10);
+  EXPECT_EQ((std::string)val_expr, (std::string)*val_expr.BaseExpr::eval());
+  const FuncExpr func_expr("id", val_expr.BaseExpr::eval());
+  EXPECT_EQ((std::string)func_expr, (std::string)*func_expr.BaseExpr::eval());
+}

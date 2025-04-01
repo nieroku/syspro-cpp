@@ -1,6 +1,5 @@
 #include "parser.h"
 
-#include <charconv>
 #include <memory>
 
 #include "lexer.h"
@@ -68,29 +67,19 @@ static Token expect(Lexer &lex, Token::Kind kind) {
 }
 
 static Token expect(Lexer &lex, Keyword kw) {
-  if (lex->view(lex.file()) != kw)
+  if ((std::string_view)*lex != kw)
     throw "unexpected keyword";
   return *(lex++);
 }
 
-static integer scanInteger(std::string_view raw) {
-  integer value;
-  std::from_chars(raw.data(), raw.data() + raw.size(), value);
-  return value;
-}
-
-std::shared_ptr<Expr> parse(Lexer &lex) {
-  std::shared_ptr<Expr> expr;
+Expr parse(Lexer &lex) {
+  Expr expr;
   expect(lex, left_parenthesis);
-  const auto kw = expect(lex, word).view(lex.file());
+  std::string_view kw = expect(lex, word);
   if (kw == Keyword(kw_val)) {
-    expr = std::make_shared<ValExpr>(
-        scanInteger(expect(lex, number).view(lex.file()))
-    );
+    expr = std::make_shared<ValExpr>((integer)expect(lex, number));
   } else if (kw == Keyword(kw_var)) {
-    expr = std::make_shared<VarExpr>(
-        std::string(expect(lex, word).view(lex.file()))
-    );
+    expr = std::make_shared<VarExpr>(std::string(expect(lex, word)));
   } else if (kw == Keyword(kw_add)) {
     expr = std::make_shared<AddExpr>(parse(lex), parse(lex));
   } else if (kw == Keyword(kw_if)) {
@@ -102,7 +91,7 @@ std::shared_ptr<Expr> parse(Lexer &lex) {
     const auto e_else = parse(lex);
     expr = std::make_shared<IfExpr>(e1, e2, e_then, e_else);
   } else if (kw == Keyword(kw_let)) {
-    const auto id = expect(lex, word).view(lex.file());
+    std::string_view id = expect(lex, word);
     expect(lex, equal_sign);
     const auto e_value = parse(lex);
     expect(lex, kw_in);
@@ -110,7 +99,7 @@ std::shared_ptr<Expr> parse(Lexer &lex) {
     expr = std::make_shared<LetExpr>(std::string(id), e_value, e_body);
   } else if (kw == Keyword(kw_function)) {
     expr = std::make_shared<FuncExpr>(
-        std::string(expect(lex, word).view(lex.file())), parse(lex)
+        std::string(expect(lex, word)), parse(lex)
     );
   } else if (kw == Keyword(kw_call)) {
     expr = std::make_shared<CallExpr>(parse(lex), parse(lex));
@@ -120,7 +109,7 @@ std::shared_ptr<Expr> parse(Lexer &lex) {
   return expr;
 }
 
-std::shared_ptr<Expr> parse(std::string_view file) {
+Expr parse(std::string_view file) {
   Lexer lex(file);
   return parse(lex);
 }

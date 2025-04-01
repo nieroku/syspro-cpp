@@ -1,6 +1,8 @@
 #ifndef LEXER_H
 #define LEXER_H
 
+#include <lang.h>
+
 #include <iterator>
 #include <optional>
 #include <string_view>
@@ -16,43 +18,27 @@ struct Token {
     eof,
   };
 
-  struct Span {
-    size_t pos;
-    size_t len;
-
-    static const Span empty;
-    bool operator==(const Span&) const = default;
-
-    std::string_view view(std::string_view file) const {
-      return file.substr(pos, len);
-    }
-  };
-
   Kind kind;
-  Span span;
+  std::string_view span;
 
-  std::string_view view(std::string_view file) const {
-    return span.view(file);
-  };
+  operator std::string_view() const { return span; };
+  operator integer() const;
+
   bool operator==(const Token&) const = default;
 };
 
-inline const Token::Span Token::Span::empty{0, 0};
-
 class Lexer {
-  std::string_view file_;
+  std::string_view file;
   std::optional<Token> token;
   size_t pos = 0;
 
  public:
   Lexer() : Lexer(std::string_view()) {};
-  explicit Lexer(std::string_view file) : file_(file) { (*this)++; }
+  explicit Lexer(std::string_view file) : file(file) { (*this)++; }
   explicit Lexer(const char* file) : Lexer(std::string_view(file)) {}
 
   using difference_type = std::ptrdiff_t;
   using value_type = Token;
-
-  std::string_view file() const { return file_; }
 
   const Token& operator*() const { return *token; }
   const Token* operator->() const { return token.operator->(); }

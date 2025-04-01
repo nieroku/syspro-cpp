@@ -2,53 +2,48 @@
 
 #include <format>
 
-std::shared_ptr<Expr> Env::get(std::string_view id) const {
+Expr Env::get(std::string_view id) const {
   if (auto it = map.find(id); it != map.end())
     return it->second;
-  if (inner)
-    return inner->get().get(id);
+  if (base)
+    return base->get().get(id);
   throw "unbound id";
 }
 
-void Env::set(std::string_view id, std::shared_ptr<Expr> value) {
-  map[std::string(id)] = value;
+Env::Builder &Env::Builder::set(std::string id, Expr expr) {
+  env.map[id] = expr;
+  return *this;
 }
 
-std::shared_ptr<Expr> ValExpr::eval(const Env &) const {
-  return std::make_shared<ValExpr>(*this);
+Expr ValExpr::eval(const Env &) const {
+  const auto weak = weak_from_this();
+  return weak.expired() ? std::make_shared<ValExpr>(*this) : weak.lock();
 }
-std::shared_ptr<Expr> VarExpr::eval(const Env &env) const {
-  return env.get(id);
-}
-std::shared_ptr<Expr> AddExpr::eval(const Env &env) const {
+Expr VarExpr::eval(const Env &env) const { return env.get(id); }
+Expr AddExpr::eval(const Env &env) const {
   return std::make_shared<ValExpr>((integer)*e1->eval(env) + *e2->eval(env));
 }
-std::shared_ptr<Expr> IfExpr::eval(const Env &env) const {
+Expr IfExpr::eval(const Env &env) const {
   if ((integer)*e1->eval(env) > *e2->eval(env))
     return e_then->eval(env);
   else
     return e_else->eval(env);
 }
-std::shared_ptr<Expr> LetExpr::eval(const Env &env) const {
-  Env updated_env(env);
-  updated_env.set(id, e_value);
-  return e_body->eval(updated_env);
+Expr LetExpr::eval(const Env &env) const {
+  return e_body->eval(Env::build(&env).set(id, e_value));
 }
-std::shared_ptr<Expr> FuncExpr::eval(const Env &) const {
-  return std::make_shared<ValExpr>(*this);
+Expr FuncExpr::eval(const Env &) const {
+  const auto weak = weak_from_this();
+  return weak.expired() ? std::make_shared<FuncExpr>(*this) : weak.lock();
 }
-std::shared_ptr<Expr> CallExpr::eval(const Env &env) const {
-  return e_body->eval(env)->operator()(env, e_arg->eval(env));
+Expr CallExpr::eval(const Env &env) const {
+  return (*e_body->eval(env))(env, e_arg->eval(env));
 }
 
 ValExpr::operator integer() const { return val; }
 
-std::shared_ptr<Expr> FuncExpr::operator()(
-    const Env &env, std::shared_ptr<Expr> arg
-) const {
-  Env updated_env(env);
-  updated_env.set(arg_id, arg);
-  return e_body->eval(updated_env);
+Expr FuncExpr::operator()(const Env &env, Expr arg) const {
+  return e_body->eval(Env::build(&env).set(arg_id, arg));
 }
 
 ValExpr::operator std::string() const { return std::format("(val {})", val); }

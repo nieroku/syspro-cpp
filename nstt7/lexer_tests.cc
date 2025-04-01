@@ -1,7 +1,7 @@
-#include <sstream>
-
 #include "gtest/gtest.h"
 #include "lexer.h"
+
+using namespace std::string_view_literals;
 
 using enum Token::Kind;
 
@@ -25,68 +25,56 @@ std::string testing::PrintToString(const Token::Kind& kind) {
   }
 }
 
-template <>
-std::string testing::PrintToString(const Token& token) {
-  std::stringstream out;
-  out << "token " << ::testing::PrintToString(token.kind) << " at "
-      << "[" << token.span.pos << ", " << token.span.len << ")";
-  return out.str();
-}
-
 TEST(LexerTest, TestEmpty) {
   Lexer lex("");
-  for (int i = 0; i < 5; i++) {
-    EXPECT_EQ(lex->kind, eof);
-    lex++;
-  }
+  for (int i = 0; i < 5; i++)
+    EXPECT_EQ((lex++)->kind, eof);
+  lex++;
 }
 
 TEST(LexerTest, TestSingleToken) {
-  Lexer lex;
-
-  lex = Lexer("word");
-  EXPECT_EQ(*(lex++), Token(word, Token::Span{0, 4}));
-  lex = Lexer("126");
-  EXPECT_EQ(*(lex++), Token(number, Token::Span{0, 3}));
-  lex = Lexer("(");
-  EXPECT_EQ(*(lex++), Token(left_parenthesis, Token::Span{0, 1}));
-  lex = Lexer(")");
-  EXPECT_EQ(*(lex++), Token(right_parenthesis, Token::Span{0, 1}));
-  lex = Lexer("=");
-  EXPECT_EQ(*(lex++), Token(equal_sign, Token::Span{0, 1}));
+  std::array<std::pair<std::string_view, Token::Kind>, 5> samples{
+      std::pair{"word"sv, word},
+      std::pair{"126"sv, number},
+      std::pair{"("sv, left_parenthesis},
+      std::pair{")"sv, right_parenthesis},
+      std::pair{"="sv, equal_sign},
+  };
+  for (const auto [file, kind] : samples)
+    EXPECT_EQ(*Lexer(file), Token(kind, file));
 }
 
 TEST(LexerTest, TestExample) {
-  Lexer lex(
+  const auto file =
       ""
       "(let K = (val 10) in\n"
       "  (add (val 5) (var K))"
-      ")\n"
-  );
+      ")\n"sv;
   std::array expecteds{
-      Token(left_parenthesis, Token::Span{0, 1}),
-      Token(word, Token::Span{1, 3}),
-      Token(word, Token::Span{5, 1}),
-      Token(equal_sign, Token::Span{7, 1}),
-      Token(left_parenthesis, Token::Span{9, 1}),
-      Token(word, Token::Span{10, 3}),
-      Token(number, Token::Span{14, 2}),
-      Token(right_parenthesis, Token::Span{16, 1}),
-      Token(word, Token::Span{18, 2}),
-      Token(left_parenthesis, Token::Span{23, 1}),
-      Token(word, Token::Span{24, 3}),
-      Token(left_parenthesis, Token::Span{28, 1}),
-      Token(word, Token::Span{29, 3}),
-      Token(number, Token::Span{33, 1}),
-      Token(right_parenthesis, Token::Span{34, 1}),
-      Token(left_parenthesis, Token::Span{36, 1}),
-      Token(word, Token::Span{37, 3}),
-      Token(word, Token::Span{41, 1}),
-      Token(right_parenthesis, Token::Span{42, 1}),
-      Token(right_parenthesis, Token::Span{43, 1}),
-      Token(right_parenthesis, Token::Span{44, 1}),
-      Token(eof, Token::Span::empty),
+      Token(left_parenthesis, file.substr(0, 1)),
+      Token(word, file.substr(1, 3)),
+      Token(word, file.substr(5, 1)),
+      Token(equal_sign, file.substr(7, 1)),
+      Token(left_parenthesis, file.substr(9, 1)),
+      Token(word, file.substr(10, 3)),
+      Token(number, file.substr(14, 2)),
+      Token(right_parenthesis, file.substr(16, 1)),
+      Token(word, file.substr(18, 2)),
+      Token(left_parenthesis, file.substr(23, 1)),
+      Token(word, file.substr(24, 3)),
+      Token(left_parenthesis, file.substr(28, 1)),
+      Token(word, file.substr(29, 3)),
+      Token(number, file.substr(33, 1)),
+      Token(right_parenthesis, file.substr(34, 1)),
+      Token(left_parenthesis, file.substr(36, 1)),
+      Token(word, file.substr(37, 3)),
+      Token(word, file.substr(41, 1)),
+      Token(right_parenthesis, file.substr(42, 1)),
+      Token(right_parenthesis, file.substr(43, 1)),
+      Token(right_parenthesis, file.substr(44, 1)),
+      Token(eof, std::string_view{}),
   };
+  Lexer lex(file);
   for (const auto expected : expecteds)
     EXPECT_EQ(*(lex++), expected);
 }
@@ -94,10 +82,9 @@ TEST(LexerTest, TestExample) {
 TEST(LexerTest, TokenView) {
   std::string_view file =
       "(let F ="
-      "(function arg (add (var arg) (val 1))) in"
-      "(let V = (val -1) in"
-      "(call (var F) (var V))))";
-  Lexer lex(file);
+      "  (function arg (add (var arg) (val 1))) in"
+      "    (let V = (val -1) in"
+      "      (call (var F) (var V))))"sv;
   std::array expecteds{
       "(",   "let", "F",   "=",    "(", "function", "arg", "(",   "add",
       "(",   "var", "arg", ")",    "(", "val",      "1",   ")",   ")",
@@ -105,7 +92,8 @@ TEST(LexerTest, TokenView) {
       ")",   "in",  "(",   "call", "(", "var",      "F",   ")",   "(",
       "var", "V",   ")",   ")",    ")", ")",
   };
-  std::cout << lex->view(file) << std::endl;
+
+  Lexer lex(file);
   for (const auto expected : expecteds)
-    EXPECT_EQ((lex++)->view(file), expected);
+    EXPECT_EQ((std::string_view)*lex++, expected);
 }
