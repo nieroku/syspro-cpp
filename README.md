@@ -6,6 +6,7 @@
 - [nsst4](https://github.com/nieroku/syspro-cpp/tree/main/nstt1)
 - [nsst5](https://github.com/nieroku/syspro-cpp/tree/main/nstt5)
 - [nsst6](https://github.com/nieroku/syspro-cpp/tree/main/nstt6)
+- [nstt8](https://github.com/nieroku/syspro-cpp/tree/main/nstt8)
 
 #### Build
 
