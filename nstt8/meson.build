@@ -1,10 +1,17 @@
 project(
   'nsst8',
   'cpp',
-  default_options: ['cpp_std=c++17'],
+  default_options: ['cpp_std=c++23'],
 )
 
-lib = static_library('lib', sources: ['file_io.h', 'string_io.h'])
+lib = static_library(
+  'lib',
+  sources: [
+    'buf_io.cc',
+    'file_io.cc',
+    'string_io.cc',
+  ],
+)
 lib_dep = declare_dependency(link_with: lib)
 
 gtest_proj = subproject('gtest')
