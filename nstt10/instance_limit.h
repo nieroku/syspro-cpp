@@ -20,6 +20,7 @@ class InstanceLimit {
     counter++;
   }
 
+ protected:
   ~InstanceLimit() noexcept { counter--; }
 };
 

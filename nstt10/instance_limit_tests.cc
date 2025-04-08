@@ -2,7 +2,7 @@
 #include "instance_limit.h"
 
 namespace {
-class Sample : public InstanceLimit<Sample, 5> {};
+class Sample : InstanceLimit<Sample, 5> {};
 }  // namespace
 
 TEST(InstanceLimitTest, MainTest) {
