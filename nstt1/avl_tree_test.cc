@@ -7,7 +7,7 @@ using std::array;
 array<int, 12> nums = {5, 1, -1, 2, 6, 3, 11, 42, 7, 0, -3, 12};
 
 TEST(AvlTreeTest, TestFindDelete) {
-  AvlTree tree;
+  AvlTree<int> tree;
   for (auto i = nums.begin(); i != nums.end(); i++) {
     for (auto j = i; j != nums.end(); j++) EXPECT_FALSE(tree.contains(*j));
     tree.insert(*i);
@@ -21,7 +21,7 @@ TEST(AvlTreeTest, TestFindDelete) {
 }
 
 TEST(AvlTreeTest, TestInsertTwice) {
-  AvlTree tree;
+  AvlTree<int> tree;
   ASSERT_FALSE(tree.contains(0));
   tree.insert(0);
   ASSERT_TRUE(tree.contains(0));
@@ -32,15 +32,15 @@ TEST(AvlTreeTest, TestInsertTwice) {
 }
 
 TEST(AvlTreeTest, TestDestructor) {
-  AvlTree empty_tree;
-  AvlTree singleton_tree;
+  AvlTree<int> empty_tree;
+  AvlTree<int> singleton_tree;
   singleton_tree.insert(0);
-  AvlTree big_tree;
+  AvlTree<int> big_tree;
   for (const auto num : nums) big_tree.insert(num);
 }
 
 TEST(AvlTreeTest, TestCopyConstructor) {
-  AvlTree original;
+  AvlTree<int> original;
   original.insert(0);
   original.insert(42);
   AvlTree copy = original;
@@ -54,9 +54,9 @@ TEST(AvlTreeTest, TestCopyConstructor) {
 }
 
 TEST(AvlTreeTest, TestAssignmentOperator) {
-  AvlTree first;
+  AvlTree<int> first;
   for (const auto num : nums) first.insert(num);
-  AvlTree second;
+  AvlTree<int> second;
   second.insert(-42);
   second = first;
   EXPECT_FALSE(second.contains(-42));
@@ -71,7 +71,7 @@ TEST(AvlTreeTest, TestAssignmentOperator) {
 }
 
 TEST(AvlTreeTest, TestMoveSemantics) {
-  AvlTree original;
+  AvlTree<int> original;
   for (const auto num : nums) original.insert(num);
   AvlTree moved = std::move(original);
   for (const auto num : nums) EXPECT_FALSE(original.contains(num));
