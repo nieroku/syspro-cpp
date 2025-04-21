@@ -1,118 +1,131 @@
 #include <algorithm>
+#include <memory>
+#include <string_view>
 #include <utility>
 
-template <std::totally_ordered T>
+template <typename T, std::totally_ordered I = const T&>
+  requires requires(T t) { static_cast<I>(t); }
 class AvlTree {
   class Node;
-  Node* node_ = nullptr;
+  class Iterator;
+  std::unique_ptr<Node> node_;
 
  public:
   AvlTree() = default;
 
-  AvlTree(AvlTree const& other)
-      : node_(other.node_ ? new Node(*other.node_) : nullptr) {}
+  AvlTree(const AvlTree& other) {
+    if (!other.empty())
+      node_ = std::make_unique<Node>(*other.node_);
+  }
 
-  AvlTree(AvlTree&& other) : node_(other.node_) { other.node_ = nullptr; }
+  AvlTree(AvlTree&& other) = default;
 
   AvlTree& operator=(AvlTree other) {
-    std::swap(node_, other.node_);
+    node_ = std::move(other.node_);
     return *this;
   }
 
-  ~AvlTree() { delete node_; };
+  ~AvlTree() = default;
 
-  bool contains(T value) const {
-    return node_ ? node_->contains(value) : false;
+  using iterator = Iterator;
+  static_assert(std::forward_iterator<iterator>);
+
+  iterator begin() const {
+    return empty() ? end() : iterator(node_.get()).descend();
   }
 
-  void insert(T value) {
-    if (node_)
-      node_->insert(value);
-    else
-      node_ = new Node(value);
-  }
+  iterator end() const { return iterator(); }
 
-  void remove(T value) {
-    if (node_) node_ = node_->remove(value);
-  }
+  iterator find(I value) const { return find(value, nullptr); }
+
+  iterator insert(T value) { return insert(value, nullptr); }
+
+  // void remove(I value) {
+  //   if (node_)
+  //     node_ = node_->remove(value);
+  // }
+
+  bool empty() const { return !node_; }
 
  private:
   ptrdiff_t balance() const { return node_ ? node_->balance() : 0; }
+  size_t height() const { return node_ ? node_->height() : 0; }
 
-  T extractMin() {
-    if (node_->left_.height()) {
-      T min = node_->left_.extractMin();
-      node_->fix();
-      return min;
-    }
-    T min = node_->value_;
-    *this = std::move(node_->right_);
-    return min;
+  iterator find(I value, Node* parent) const {
+    return node_.get() ? node_->find(value, parent) : end();
   }
 
-  size_t height() const { return node_ ? node_->height() : 0; }
+  iterator insert(T value, Node* parent) {
+    if (node_)
+      return node_->insert(value, parent);
+    else {
+      node_ = std::make_unique<Node>(value, parent);
+      return iterator(node_.get());
+    }
+  }
+
+  // T extractMin() {
+  //   if (node_->left_.height()) {
+  //     T min = node_->left_.extractMin();
+  //     node_->fix();
+  //     return min;
+  //   }
+  //   T min = node_->value_;
+  //   *this = std::move(node_->right_);
+  //   return min;
+  // }
 };
 
-template <std::totally_ordered T>
-class AvlTree<T>::Node {
+template <typename T, std::totally_ordered I>
+  requires requires(T t) { static_cast<I>(t); }
+class AvlTree<T, I>::Node {
   friend AvlTree;
 
   T value_;
   size_t height_ = 1;
   AvlTree left_;
   AvlTree right_;
+  Node* parent_;
 
  public:
-  Node(T value) : value_(value) {};
+  Node(T value, Node* parent) : value_(value), parent_(parent) {};
 
-  Node(Node const& other)
-      : value_(other.value_),
-        height_(other.height_),
-        left_(other.left_),
-        right_(other.right_) {}
-
-  Node(Node&& other)
-      : value_(other.value_),
-        height_(other.height_),
-        left_(std::move(other.left_)),
-        right_(std::move(other.right_)) {}
-
-  Node& operator=(Node other) {
-    std::swap(value_, other.value_);
-    std::swap(height_, other.height_);
-    std::swap(left_, other.left_);
-    std::swap(right_, other.right_);
-    return *this;
+  iterator find(I value, Node* parent) {
+    parent_ = parent;
+    auto id = static_cast<I>(value_);
+    if (value == id)
+      return Iterator(this);
+    return (value < id ? left_ : right_).find(value, this);
   }
 
-  ~Node() = default;
-
-  bool contains(T value) {
-    if (value == value_) return true;
-    return (value < value_ ? left_ : right_).contains(value);
-  }
-
-  void insert(T value) {
-    if (value != value_) (value < value_ ? left_ : right_).insert(value);
-    fix();
-  }
-
-  Node* remove(T value) {
-    if (value != value_) {
-      (value < value_ ? left_ : right_).remove(value);
+  iterator insert(T value, Node* parent) {
+    parent_ = parent;
+    auto id = static_cast<I>(value_);
+    if (value != id) {
+      auto it = (value < id ? left_ : right_).insert(value, this);
       fix();
-      return this;
+      return it;
     }
-    if (left_.height() && right_.height()) {
-      value_ = right_.extractMin();
-      fix();
-      return this;
-    }
-    Node* heir = nullptr;
-    std::swap(heir, (left_.height() ? left_ : right_).node_);
-    delete this;
-    return heir;
+    return Iterator(this);
   }
+
+  // void remove(I value) {
+  //   auto id = static_cast<I>(value_);
+  //   if (value != id) {
+  //     (value < id ? left_ : right_).remove(value);
+  //     fix();
+  //     return this;
+  //   }
+  //   if (left_.height() && right_.height()) {
+  //     value_ = right_.extractMin();
+  //     fix();
+  //     return this;
+  //   }
+  //   Node* heir = nullptr;
+  //   std::swap(heir, (left_.height() ? left_ : right_).node_);
+  //   delete this;
+  //   return heir;
+  // }
 
   ptrdiff_t balance() const { return right_.height() - left_.height(); }
   size_t height() const { return height_; }
@@ -121,11 +134,13 @@ class AvlTree<T>::Node {
   void fix() {
     switch (balance()) {
       case 2:
-        if (right_.balance() < 0) right_.node_->rotateRight();
+        if (right_.balance() < 0)
+          right_.node_->rotateRight();
         rotateLeft();
         break;
       case -2:
-        if (right_.balance() > 0) right_.node_->rotateLeft();
+        if (right_.balance() > 0)
+          right_.node_->rotateLeft();
         rotateRight();
         break;
       default:
@@ -153,4 +168,61 @@ class AvlTree<T>::Node {
   }
 
   void update() { height_ = std::max(left_.height(), right_.height()) + 1; }
+};
+
+template <typename T, std::totally_ordered I>
+  requires requires(T t) { static_cast<I>(t); }
+class AvlTree<T, I>::Iterator {
+  friend class AvlTree;
+
+  Node* node_ = nullptr;
+  bool ascending = false;
+
+ public:
+  using difference_type = std::ptrdiff_t;
+  using value_type = T;
+
+  Iterator() = default;
+
+  const T& operator*() const { return node_->value_; }
+  const T* operator->() const { return &node_->value_; }
+
+  Iterator& operator++() {
+    if (!ascending && !node_->right_.empty()) {
+      node_ = node_->right_.node_.get();
+      descend();
+    } else
+      ascend();
+    return *this;
+  }
+
+  Iterator operator++(int) {
+    auto tmp = *this;
+    ++*this;
+    return tmp;
+  }
+
+  bool operator==(const Iterator& other) const { return node_ == other.node_; }
+
+ private:
+  Iterator& ascend() {
+    Node* prev;
+    do {
+      prev = node_;
+      node_ = node_->parent_;
+    } while (node_ && (ascending = prev == node_->right_.node_.get()));
+    return *this;
+  }
+
+  Iterator& descend() {
+    while (!node_->left_.empty()) {
+      auto prev = node_;
+      node_ = node_->left_.node_.get();
+      node_->parent_ = prev;
+    }
+    ascending = false;
+    return *this;
+  }
+
+  Iterator(Node* node) : node_(node) {}
 };
