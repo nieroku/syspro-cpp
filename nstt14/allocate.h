@@ -3,25 +3,16 @@
 
 #include <concepts>
 #include <cstddef>
-#include <new>
 
-namespace internal {
+template <size_t SIZE, typename _ = void>
+void allocate(void* memory) {}
 
-template <typename T, typename... U>
-void allocate(char* memory, const T& head, const U&... tail) {
+template <size_t SIZE, typename T, typename... U>
+  requires(std::copy_constructible<T> && ... && std::copy_constructible<U>)
+          && (SIZE >= (sizeof(T) + ... + sizeof(U)))
+void allocate(void* memory, const T& head, const U&... tail) {
   new (memory) T(head);
-  if constexpr (sizeof...(U) > 0)
-    allocate(memory + sizeof(T), tail...);
-}
-
-}  // namespace internal
-
-template <size_t SIZE, typename... Types>
-  requires(std::copy_constructible<Types> && ...)
-          && (SIZE >= (0 + ... + sizeof(Types)))
-void allocate(void* memory, const Types&... args) {
-  if constexpr (sizeof...(Types) > 0)
-    internal::allocate((char*)memory, args...);
+  allocate<SIZE>((char*)memory + sizeof(T), tail...);
 }
 
 #endif
