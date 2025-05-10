@@ -94,7 +94,24 @@ TEST(AvlTreeTest, RangeBasedFor) {
 
   array<int, 12> sorted = nums;
   std::sort(sorted.begin(), sorted.end());
-  auto expected = sorted.begin();
-  for (const auto& num : tree)
-    EXPECT_EQ(num, *(expected++));
+  {
+    auto expected = sorted.begin();
+    for (const auto& num : tree)
+      EXPECT_EQ(num, *(expected++));
+  }
+  {
+    auto expected = sorted.begin();
+    for (auto it = tree.cbegin(); it != tree.cend(); it++)
+      EXPECT_EQ(*it, *(expected++));
+  }
+  {
+    auto expected = sorted.rbegin();
+    for (auto it = tree.rbegin(); it != tree.rend(); it++)
+      EXPECT_EQ(*it, *(expected++));
+  }
+  {
+    auto expected = sorted.rbegin();
+    for (auto it = tree.crbegin(); it != tree.crend(); it++)
+      EXPECT_EQ(*it, *(expected++));
+  }
 }

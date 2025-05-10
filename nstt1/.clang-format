@@ -18,3 +18,4 @@ PenaltyBreakBeforeFirstCallParameter: 0
 PenaltyBreakOpenParenthesis: 0
 PenaltyBreakScopeResolution: 2000
 QualifierAlignment: Left
+RequiresClausePosition: SingleLine

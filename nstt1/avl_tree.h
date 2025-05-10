@@ -1,198 +1,175 @@
-#include <algorithm>
+#ifndef AVL_TREE_H
+#define AVL_TREE_H
+
+#include <concepts>
 #include <memory>
-#include <string_view>
+#include <string>
 #include <utility>
 
-template <typename T, std::totally_ordered I = const T&>
-  requires requires(T t) { static_cast<I>(t); }
-class AvlTree {
-  class Node;
+namespace internal {
+
+template <typename T>
+struct defaults {
+  using Identity = const T&;
+  constexpr static auto IdentityOf = std::identity();
+};
+
+template <class CharT, class Traits, class Allocator>
+struct defaults<std::basic_string<CharT, Traits, Allocator>> {
+  using Identity = std::basic_string_view<CharT, Traits>;
+  constexpr static auto IdentityOf = std::basic_string<
+      CharT,
+      Traits,
+      Allocator>::operator std::basic_string_view<CharT, Traits>;
+};
+
+}  // namespace internal
+
+template <
+    typename T,
+    typename Identity = internal::defaults<T>::Identity,
+    auto IdentityOf = internal::defaults<T>::IdentityOf>
+requires requires(const T& value) {
+  { IdentityOf(value) } -> std::same_as<Identity>;
+} class AvlTree {
+  template <bool nonconst>
   class Iterator;
+  class Node;
+
   std::unique_ptr<Node> node_;
 
  public:
-  AvlTree() = default;
+  using iterator = Iterator<true>;
+  using const_iterator = Iterator<false>;
 
+  static_assert(std::bidirectional_iterator<iterator>);
+  static_assert(std::bidirectional_iterator<const_iterator>);
+
+  using reverse_iterator = std::reverse_iterator<iterator>;
+  using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+
+  AvlTree() = default;
   AvlTree(const AvlTree& other) {
-    if (!other.empty())
+    if (other)
       node_ = std::make_unique<Node>(*other.node_);
   }
-
-  AvlTree(AvlTree&& other) = default;
-
+  AvlTree(AvlTree&&) = default;
   AvlTree& operator=(AvlTree other) {
     node_ = std::move(other.node_);
     return *this;
   }
-
   ~AvlTree() = default;
 
-  using iterator = Iterator;
-  static_assert(std::forward_iterator<iterator>);
+  bool empty() const { return !(bool)node_; }
 
-  iterator begin() const {
-    return empty() ? end() : iterator(node_.get()).descend();
+  iterator begin() {
+    return empty() ? end() : iterator(this, node_.get()).descendLeft();
+  }
+  iterator end() { return iterator(this); }
+
+  const_iterator cbegin() const {
+    return empty() ? cend() : const_iterator(this, node_.get()).descendLeft();
+  }
+  const_iterator cend() const { return const_iterator(this); }
+
+  reverse_iterator rbegin() { return reverse_iterator(end()); }
+  reverse_iterator rend() { return reverse_iterator(begin()); }
+
+  const_reverse_iterator crbegin() const {
+    return const_reverse_iterator(cend());
+  }
+  const_reverse_iterator crend() const {
+    return const_reverse_iterator(cbegin());
   }
 
-  iterator end() const { return iterator(); }
+  iterator find(Identity value) {
+    return iterator(this, findTree(value).node_.get());
+  }
+  const_iterator find(Identity value) const {
+    return const_iterator(this, findTree(value).node_.get());
+  }
 
-  iterator find(I value) const { return find(value, nullptr); }
-
-  iterator insert(T value) { return insert(value, nullptr); }
-
-  // void remove(I value) {
-  //   if (node_)
-  //     node_ = node_->remove(value);
-  // }
-
-  bool empty() const { return !node_; }
+  iterator insert(const T& value) requires std::copy_constructible<T> {
+    auto& tree = findTree(IdentityOf(value));
+    if (!tree)
+      tree = AvlTree(std::make_unique<Node>(value));
+    return iterator(this, tree.node_.get());
+  }
 
  private:
-  ptrdiff_t balance() const { return node_ ? node_->balance() : 0; }
-  size_t height() const { return node_ ? node_->height() : 0; }
+  AvlTree(std::unique_ptr<Node>&& node) : node_(std::move(node)) {}
 
-  iterator find(I value, Node* parent) const {
-    return node_.get() ? node_->find(value, parent) : end();
+  operator bool() const { return !empty(); }
+
+  static auto& findTree_(auto tree, Identity id) {
+    while (*tree && id != IdentityOf(tree->node_->value_))
+      tree = id < IdentityOf(tree->node_->value_) ? &tree->node_->left_
+                                                  : &tree->node_->right_;
+    return *tree;
   }
 
-  iterator insert(T value, Node* parent) {
-    if (node_)
-      return node_->insert(value, parent);
-    else {
-      node_ = std::make_unique<Node>(value, parent);
-      return iterator(node_.get());
-    }
-  }
-
-  // T extractMin() {
-  //   if (node_->left_.height()) {
-  //     T min = node_->left_.extractMin();
-  //     node_->fix();
-  //     return min;
-  //   }
-  //   T min = node_->value_;
-  //   *this = std::move(node_->right_);
-  //   return min;
-  // }
+  AvlTree& findTree(Identity id) { return findTree_(this, id); }
+  const AvlTree& findTree(Identity id) const { return findTree_(this, id); }
 };
 
-template <typename T, std::totally_ordered I>
-  requires requires(T t) { static_cast<I>(t); }
-class AvlTree<T, I>::Node {
-  friend AvlTree;
-
-  T value_;
-  size_t height_ = 1;
-  AvlTree left_;
-  AvlTree right_;
-  Node* parent_;
-
- public:
-  Node(T value, Node* parent) : value_(value), parent_(parent) {};
-
-  iterator find(I value, Node* parent) {
-    parent_ = parent;
-    auto id = static_cast<I>(value_);
-    if (value == id)
-      return Iterator(this);
-    return (value < id ? left_ : right_).find(value, this);
-  }
-
-  iterator insert(T value, Node* parent) {
-    parent_ = parent;
-    auto id = static_cast<I>(value_);
-    if (value != id) {
-      auto it = (value < id ? left_ : right_).insert(value, this);
-      fix();
-      return it;
-    }
-    return Iterator(this);
-  }
-
-  // void remove(I value) {
-  //   auto id = static_cast<I>(value_);
-  //   if (value != id) {
-  //     (value < id ? left_ : right_).remove(value);
-  //     fix();
-  //     return this;
-  //   }
-  //   if (left_.height() && right_.height()) {
-  //     value_ = right_.extractMin();
-  //     fix();
-  //     return this;
-  //   }
-  //   Node* heir = nullptr;
-  //   std::swap(heir, (left_.height() ? left_ : right_).node_);
-  //   delete this;
-  //   return heir;
-  // }
-
-  ptrdiff_t balance() const { return right_.height() - left_.height(); }
-  size_t height() const { return height_; }
-
- private:
-  void fix() {
-    switch (balance()) {
-      case 2:
-        if (right_.balance() < 0)
-          right_.node_->rotateRight();
-        rotateLeft();
-        break;
-      case -2:
-        if (right_.balance() > 0)
-          right_.node_->rotateLeft();
-        rotateRight();
-        break;
-      default:
-        update();
-        break;
-    }
-  }
-
-  void rotateLeft() {
-    std::swap(value_, right_.node_->value_);
-    std::swap(right_.node_->left_, right_.node_->right_);
-    std::swap(left_, right_.node_->left_);
-    std::swap(left_, right_);
-    left_.node_->update();
-    update();
-  }
-
-  void rotateRight() {
-    std::swap(value_, left_.node_->value_);
-    std::swap(left_.node_->left_, left_.node_->right_);
-    std::swap(left_.node_->right_, right_);
-    std::swap(left_, right_);
-    right_.node_->update();
-    update();
-  }
-
-  void update() { height_ = std::max(left_.height(), right_.height()) + 1; }
-};
-
-template <typename T, std::totally_ordered I>
-  requires requires(T t) { static_cast<I>(t); }
-class AvlTree<T, I>::Iterator {
+template <typename T, typename Identity, auto IdentityOf>
+requires requires(const T& value) {
+  { IdentityOf(value) } -> std::same_as<Identity>;
+} class AvlTree<T, Identity, IdentityOf>::Node {
   friend class AvlTree;
 
-  Node* node_ = nullptr;
-  bool ascending = false;
+  AvlTree left_;
+  AvlTree right_;
+  size_t height = 0;
+  T value_;
+
+ public:
+  Node(const T& value) : value_(value) {};
+  Node(const Node&) = default;
+  Node(Node&&) = default;
+  ~Node() = default;
+};
+
+template <typename T, typename Identity, auto IdentityOf>
+requires requires(const T& value) {
+  { IdentityOf(value) } -> std::same_as<Identity>;
+} template <bool nonconst>
+class AvlTree<T, Identity, IdentityOf>::Iterator {
+  friend class AvlTree;
+
+  std::conditional_t<nonconst, AvlTree, const AvlTree>* root_{};
+  std::conditional_t<nonconst, AvlTree::Node, const AvlTree::Node>* node_{};
+
+  Iterator(decltype(root_) root) : root_(root) {}
+  Iterator(decltype(root_) root, decltype(node_) node)
+      : root_(root), node_(node) {}
 
  public:
   using difference_type = std::ptrdiff_t;
-  using value_type = T;
+  using value_type = std::conditional_t<nonconst, T, const T>;
 
   Iterator() = default;
+  Iterator(const Iterator&) = default;
+  Iterator(Iterator&&) = default;
+  Iterator& operator=(const Iterator&) = default;
+  Iterator& operator=(Iterator&&) = default;
+  operator const_iterator() { return const_iterator(root_, node_); }
 
-  const T& operator*() const { return node_->value_; }
-  const T* operator->() const { return &node_->value_; }
+  value_type& operator*() const { return node_->value_; }
+  value_type* operator->() const { return &node_->value_; }
 
   Iterator& operator++() {
-    if (!ascending && !node_->right_.empty()) {
+    if (node_->right_) {
       node_ = node_->right_.node_.get();
-      descend();
-    } else
-      ascend();
+      descendLeft();
+    } else {
+      Node* pred;
+      do {
+        pred = up();
+        if (!node_)
+          break;
+      } while (pred == node_->right_.node_.get());
+    }
     return *this;
   }
 
@@ -202,27 +179,46 @@ class AvlTree<T, I>::Iterator {
     return tmp;
   }
 
+  Iterator& operator--() {
+    if (!node_) {
+      node_ = root_->node_.get();
+      descendRight();
+    } else if (node_->left_) {
+      node_ = node_->left_.node_.get();
+      descendRight();
+    } else {
+      Node* pred;
+      do {
+        pred = up();
+        if (!node_)
+          break;
+      } while (pred == node_->left_.node_.get());
+    }
+    return *this;
+  }
+
+  Iterator operator--(int) {
+    auto tmp = *this;
+    --*this;
+    return tmp;
+  }
+
   bool operator==(const Iterator& other) const { return node_ == other.node_; }
 
  private:
-  Iterator& ascend() {
-    Node* prev;
-    do {
-      prev = node_;
-      node_ = node_->parent_;
-    } while (node_ && (ascending = prev == node_->right_.node_.get()));
-    return *this;
-  }
-
-  Iterator& descend() {
-    while (!node_->left_.empty()) {
-      auto prev = node_;
+  Iterator& descendLeft() {
+    while (node_->left_)
       node_ = node_->left_.node_.get();
-      node_->parent_ = prev;
-    }
-    ascending = false;
     return *this;
   }
 
-  Iterator(Node* node) : node_(node) {}
+  Iterator& descendRight() {
+    while (node_->right_)
+      node_ = node_->right_.node_.get();
+    return *this;
+  }
+
+  Node* up() { return const_cast<Node*>(std::exchange(node_, node_->parent_)); }
 };
+
+#endif
