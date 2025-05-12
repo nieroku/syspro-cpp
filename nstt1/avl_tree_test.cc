@@ -8,22 +8,22 @@ using std::array;
 
 array<int, 12> nums = {5, 1, -1, 2, 6, 3, 11, 42, 7, 0, -3, 12};
 
-TEST(AvlTreeTest, TestFindDelete) {
+TEST(AvlTreeTest, TestFindRemove) {
   AvlTree<int> tree;
   for (auto i = nums.begin(); i != nums.end(); i++) {
     for (auto j = i; j != nums.end(); j++)
-      EXPECT_EQ(tree.find(*j), tree.end()) << j << '\n';
+      EXPECT_FALSE(tree.contains(*j)) << j << '\n';
     tree.insert(*i);
     for (auto j = nums.begin(); j != i; j++)
-      EXPECT_NE(tree.find(*j), tree.end());
+      EXPECT_TRUE(tree.contains(*j));
   }
-  //   for (auto i = nums.begin(); i != nums.end(); i++) {
-  // for (auto j = i; j != nums.end(); j++)
-  //   EXPECT_EQ(tree.find(*j), tree.end());
-  // tree.remove(*i);
-  // for (auto j = nums.begin(); j != i; j++)
-  //   EXPECT_FALSE(tree.contains(*j));
-  //   }
+  for (auto i = nums.begin(); i != nums.end(); i++) {
+    for (auto j = i; j != nums.end(); j++)
+      EXPECT_TRUE(tree.contains(*j)) << *j << '\n';
+    tree.remove(tree.find(*i));
+    for (auto j = nums.begin(); j != i; j++)
+      EXPECT_FALSE(tree.contains(*j));
+  }
 }
 
 TEST(AvlTreeTest, TestInsertTwice) {
@@ -33,8 +33,8 @@ TEST(AvlTreeTest, TestInsertTwice) {
   ASSERT_EQ(it, tree.find(0));
   ASSERT_EQ(it, tree.insert(0));
   ASSERT_NE(it, tree.end());
-  // tree.remove(0);
-  // ASSERT_FALSE(tree.contains(0));
+  tree.remove(it);
+  ASSERT_FALSE(tree.contains(0));
 }
 
 TEST(AvlTreeTest, TestCopyConstructor) {
@@ -45,10 +45,10 @@ TEST(AvlTreeTest, TestCopyConstructor) {
   EXPECT_NE(copy.find(0), copy.end());
   EXPECT_NE(copy.find(42), copy.end());
   copy.insert(-2);
-  EXPECT_EQ(original.find(-2), original.end());
-  // copy.remove(42);
-  // EXPECT_TRUE(original.contains(42));
-  // EXPECT_FALSE(copy.contains(42));
+  EXPECT_EQ(original.find(-4), original.end());
+  copy.remove(copy.find(42));
+  EXPECT_TRUE(original.contains(42));
+  EXPECT_FALSE(copy.contains(42));
 }
 
 TEST(AvlTreeTest, TestAssignmentOperator) {
@@ -61,8 +61,8 @@ TEST(AvlTreeTest, TestAssignmentOperator) {
   EXPECT_EQ(second.find(-42), second.end());
   for (const auto num : nums)
     EXPECT_NE(second.find(num), second.end());
-// second.remove(42);
-// EXPECT_TRUE(first.contains(42));
+  second.remove(second.find(42));
+  EXPECT_TRUE(first.contains(42));
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wself-assign-overloaded"
   first = first;
@@ -114,4 +114,11 @@ TEST(AvlTreeTest, RangeBasedFor) {
     for (auto it = tree.crbegin(); it != tree.crend(); it++)
       EXPECT_EQ(*it, *(expected++));
   }
+}
+
+TEST(AvlTreeTest, StringView) {
+  AvlTree<std::string> tree{"", "ab", "aba", "bac"};
+  EXPECT_EQ(*tree.begin(), "");
+  EXPECT_EQ(*tree.rbegin(), "bac");
+  EXPECT_EQ(*++tree.find("ab"), "aba");
 }
