@@ -27,13 +27,13 @@ struct defaults<std::basic_string<CharT, Traits, Allocator>> {
 
 }  // namespace internal
 
-template <
-    typename T,
-    typename Identity = internal::defaults<T>::Identity,
-    auto IdentityOf = internal::defaults<T>::IdentityOf>
-requires requires(const T& value) {
-  { IdentityOf(value) } -> std::same_as<Identity>;
-} class AvlTree {
+template <typename T,
+          std::totally_ordered Identity = internal::defaults<T>::Identity,
+          auto IdentityOf = internal::defaults<T>::IdentityOf>
+  requires requires(const T& value) {
+    { IdentityOf(value) } -> std::same_as<Identity>;
+  }
+class AvlTree {
   template <typename TreePtr, typename NodePtr>
   class Iterator;
   struct Node;
@@ -57,8 +57,7 @@ requires requires(const T& value) {
   ~AvlTree() = default;
 
   AvlTree(std::initializer_list<T> il) {
-    for (auto&& e : il)
-      insert(e);
+    for (auto&& e : il) insert(e);
   }
 
   bool empty() const { return !(bool)node; }
@@ -92,25 +91,28 @@ requires requires(const T& value) {
 
   bool contains(Identity value) const { return find(value) != cend(); }
 
-  iterator insert(const T& value) requires std::copy_constructible<T> {
+  iterator insert(const T& value)
+    requires std::copy_constructible<T>
+  {
     return insert(IdentityOf(value), [&](AvlTree& pos) {
       pos = AvlTree(std::forward<const T&>(value));
     });
   }
 
-  iterator insert(T&& value) requires std::move_constructible<T> {
-    return insert(IdentityOf(value), [&](AvlTree& pos) {
-      pos = AvlTree(std::forward<T>(value));
-    });
+  iterator insert(T&& value)
+    requires std::move_constructible<T>
+  {
+    return insert(IdentityOf(value),
+                  [&](AvlTree& pos) { pos = AvlTree(std::forward<T>(value)); });
   }
 
   template <typename... Args>
-  iterator emplace(Args&&... args) requires std::constructible_from<T, Args...>
+  iterator emplace(Args&&... args)
+    requires std::constructible_from<T, Args...>
   {
     AvlTree tree(args...);
-    return insert(tree.identity(), [&](AvlTree& pos) {
-      pos = std::move(tree);
-    });
+    return insert(tree.identity(),
+                  [&](AvlTree& pos) { pos = std::move(tree); });
   }
 
   iterator remove(iterator pos) {
@@ -125,8 +127,7 @@ requires requires(const T& value) {
       right.setParent(nullptr);
       tree = std::move(next.node->enclosingTree(right).extractAsMin(right));
       tree.setParent(parent);
-      if (!left)
-        std::unreachable();
+      if (!left) std::unreachable();
       tree.attachLeft(std::move(left));
       tree.attachRight(std::move(right));
     } else if (left || right) {
@@ -137,8 +138,7 @@ requires requires(const T& value) {
       tree = AvlTree();
     }
 
-    if (parent)
-      parent->fix(root);
+    if (parent) parent->fix(root);
     return next;
   }
 
@@ -176,8 +176,7 @@ requires requires(const T& value) {
   AvlTree::Node* parent() const { return node->parent; }
   AvlTree::Node* asParent() const { return node.get(); }
   void setParent(Node* parent) {
-    if (node)
-      node->parent = parent;
+    if (node) node->parent = parent;
   }
 
   size_t height() const { return empty() ? 0 : node->height; };
@@ -186,8 +185,7 @@ requires requires(const T& value) {
   Identity identity() const { return IdentityOf(node->value); }
 
   static auto& findPos(auto tree, Identity id, auto*&... parent) {
-    if constexpr (sizeof...(parent))
-      std::forward<Node*&>(parent...) = nullptr;
+    if constexpr (sizeof...(parent)) std::forward<Node*&>(parent...) = nullptr;
     while (*tree && id != tree->identity()) {
       if constexpr (sizeof...(parent))
         std::forward<Node*&>(parent...) = tree->asParent();
@@ -211,8 +209,7 @@ requires requires(const T& value) {
     if (!pos) {
       insert(pos);
       pos.setParent(parent);
-      if (parent)
-        parent->fix(root);
+      if (parent) parent->fix(root);
     }
     return iterator(this, pos.node.get());
   }
@@ -221,18 +218,15 @@ requires requires(const T& value) {
     auto old_height = height();
     switch (balance()) {
       case -2:
-        if (left().balance() > 0)
-          left().rotateLeft();
+        if (left().balance() > 0) left().rotateLeft();
         rotateRight();
         break;
       case 2:
-        if (right().balance() < 0)
-          right().rotateRight();
+        if (right().balance() < 0) right().rotateRight();
         rotateLeft();
         break;
     }
-    if (old_height != updateHeight() && parent())
-      parent()->fix(root);
+    if (old_height != updateHeight() && parent()) parent()->fix(root);
   }
 
   void rotateLeft() {
@@ -259,16 +253,16 @@ requires requires(const T& value) {
     AvlTree extracted = std::move(*this);
     *this = std::move(extracted.right());
     setParent(extracted.parent());
-    if (extracted.parent())
-      extracted.parent()->fix(root);
+    if (extracted.parent()) extracted.parent()->fix(root);
     return extracted;
   }
 };
 
-template <typename T, typename Identity, auto IdentityOf>
-requires requires(const T& value) {
-  { IdentityOf(value) } -> std::same_as<Identity>;
-} struct AvlTree<T, Identity, IdentityOf>::Node {
+template <typename T, std::totally_ordered Identity, auto IdentityOf>
+  requires requires(const T& value) {
+    { IdentityOf(value) } -> std::same_as<Identity>;
+  }
+struct AvlTree<T, Identity, IdentityOf>::Node {
   friend class AvlTree;
 
   Node* parent{};
@@ -278,7 +272,8 @@ requires requires(const T& value) {
   T value;
 
   template <typename... Args>
-  Node(Args&&... args) requires std::constructible_from<T, Args...>
+  Node(Args&&... args)
+    requires std::constructible_from<T, Args...>
       : value(std::forward<Args>(args)...){};
   Node(const Node&) = delete;
   Node(Node&&) = delete;
@@ -298,18 +293,18 @@ requires requires(const T& value) {
       tree = &(is_left_child ? parent->left : parent->right);
     } else
       tree = &root;
-    if (tree->node.get() != this)
-      std::unreachable();
+    if (tree->node.get() != this) std::unreachable();
     return *tree;
   }
 
   void fix(AvlTree& root) { return enclosingTree(root).fix(root); }
 };
 
-template <typename T, typename Identity, auto IdentityOf>
-requires requires(const T& value) {
-  { IdentityOf(value) } -> std::same_as<Identity>;
-} template <typename TreePtr, typename NodePtr>
+template <typename T, std::totally_ordered Identity, auto IdentityOf>
+  requires requires(const T& value) {
+    { IdentityOf(value) } -> std::same_as<Identity>;
+  }
+template <typename TreePtr, typename NodePtr>
 class AvlTree<T, Identity, IdentityOf>::Iterator {
   friend class AvlTree;
 
@@ -341,8 +336,7 @@ class AvlTree<T, Identity, IdentityOf>::Iterator {
       NodePtr pred;
       do {
         pred = up();
-        if (!node)
-          break;
+        if (!node) break;
       } while (pred == node->right.asParent());
     }
     return *this;
@@ -362,8 +356,7 @@ class AvlTree<T, Identity, IdentityOf>::Iterator {
       node = node->left.node.get();
       descendRight();
     } else {
-      while (up() == node->left.asParent())
-        ;
+      while (up() == node->left.asParent());
     }
     return *this;
   }
@@ -382,14 +375,12 @@ class AvlTree<T, Identity, IdentityOf>::Iterator {
   }
 
   Iterator& descendLeft() {
-    while (node->left)
-      node = node->left.node.get();
+    while (node->left) node = node->left.node.get();
     return *this;
   }
 
   Iterator& descendRight() {
-    while (node->right)
-      node = node->right.node.get();
+    while (node->right) node = node->right.node.get();
     return *this;
   }
 
